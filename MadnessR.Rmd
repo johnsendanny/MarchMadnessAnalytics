@@ -1,0 +1,69 @@
+---
+title: "MarchMadness"
+author: "Danny Johnsen"
+date: "3/3/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+
+basketballteams = read.csv('CBB_Data08-19.csv')
+basketballteams = filter(basketballteams, basketballteams$Seed != '17')
+
+basketballteams$Results <- ifelse(basketballteams$Results %in% c('R68','R64'),0,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'R32',1,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'Sweet Sixteen',2,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'Elite Eight',3,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'Final Four',4,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'Finals',5,basketballteams$Results)
+basketballteams$Results <- ifelse(basketballteams$Results == 'CHAMPS',6,basketballteams$Results)
+basketballteams['Avg Dist'] = basketballteams$Seed
+basketballteams$Seed = as.integer(basketballteams$Seed)
+basketballteams$Results = as.integer(basketballteams$Results)
+
+for (x in 1:16) {
+  seeds = filter(basketballteams,as.numeric(basketballteams$Seed) == x)
+  seeds
+  avg = mean(as.numeric(seeds$Results))
+  basketballteams$`Avg Dist` <- ifelse(as.numeric(basketballteams$Seed) == x,avg ,basketballteams$`Avg Dist`)
+}
+
+basketballteams['Extra Dist'] = as.numeric(basketballteams$Results) - as.numeric(basketballteams$`Avg Dist`)
+
+basketballteams$X <- NULL
+basketballteams$`Avg Dist` <- NULL
+basketballteams$Year <- NULL
+basketballteams$Seed <- NULL
+basketballteams$Results <- NULL
+basketballteams$TeamNames <- NULL
+```
+
+
+```{r}
+model1 = lm(basketballteams$`Extra Dist` ~ ., data=basketballteams)
+summary(model1)
+```
+```{r}
+library(leaps)
+fullmodel = lm(basketballteams$`Extra Dist` ~ ., data=basketballteams)
+step_backward = step(fullmodel,direction='backward')
+
+```
+```{r}
+attach(basketballteams)
+backmodel = lm(basketballteams$`Extra Dist` ~ ADJOE + Barthag + tor + tord + orb + drb + ftr + ftrd + X2p. + X2pd. + X3p. + X3pd. + wab + AdjEM.KP + AdjO.KP + Luck.KP + AdjEM.SOS.KP)
+summary(backmodel)
+detach(basketballteams)
+```
+
+```{r}
+library(leaps)
+intmodel = lm(basketballteams$`Extra Dist` ~ 1, data=basketballteams)
+step_forward = step(intmodel,direction='forward')
+
+```
